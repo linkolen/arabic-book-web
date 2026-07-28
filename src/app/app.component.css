@@ -1,0 +1,8 @@
+.brand {
+  display: block;
+  padding: 1rem 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: #1a5b3f;
+  border-bottom: 1px solid #eee;
+}

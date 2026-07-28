@@ -1,0 +1,50 @@
+<section class="setup-card">
+  <h1>Start a new Arabic children's book</h1>
+  <p class="hint">
+    Describe the book below. Gemini will write the Arabic story and a per-page
+    illustration prompt -- this can take a few seconds.
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label>
+      Theme
+      <input type="text" formControlName="theme" placeholder="a rabbit who learns to share" />
+    </label>
+
+    <label>
+      Main character
+      <input type="text" formControlName="mainCharacter" placeholder="a small brown rabbit named Arnoub" />
+    </label>
+
+    <label>
+      Age band
+      <select formControlName="ageBand">
+        <option value="2-4">2-4</option>
+        <option value="4-6">4-6</option>
+        <option value="6-8">6-8</option>
+      </select>
+    </label>
+
+    <label>
+      Page count
+      <input type="number" formControlName="pageCount" min="1" max="828" />
+    </label>
+
+    <label>
+      Art style
+      <input type="text" formControlName="artStyle" placeholder="watercolor, soft pastel colors" />
+    </label>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        Generating story...
+      } @else {
+        Create book
+      }
+    </button>
+  </form>
+</section>

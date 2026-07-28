@@ -1,0 +1,144 @@
+@if (loadError()) {
+  <p class="error page-error">{{ loadError() }}</p>
+}
+
+@if (book(); as b) {
+  <header class="workspace-header">
+    <h1>{{ b.titleAr || b.theme }}</h1>
+    <p class="progress">{{ readyCount() }} of {{ totalCount() }} pages ready</p>
+    <progress [value]="readyCount()" [max]="totalCount()"></progress>
+  </header>
+
+  <section class="cover-card" [class.ready]="b.coverImageReady">
+    <h2>
+      Cover
+      @if (b.coverImageReady) {
+        <span class="badge ready">ready</span>
+      } @else {
+        <span class="badge pending">not uploaded</span>
+      }
+    </h2>
+    <p class="hint">
+      Generate one wraparound back+spine+front illustration (see the style guide below for
+      consistency), then upload it here.
+    </p>
+    @if (b.styleGuide) {
+      <p class="prompt">{{ b.styleGuide }}</p>
+    }
+
+    <div class="field">
+      <label for="cover-file">Cover illustration</label>
+      <input
+        id="cover-file"
+        type="file"
+        accept="image/png"
+        (change)="onCoverFileSelected($event)"
+        [disabled]="uploadingCover()"
+      />
+      @if (uploadingCover()) {
+        <p class="hint">Uploading...</p>
+      }
+    </div>
+
+    @if (coverError()) {
+      <p class="error">{{ coverError() }}</p>
+    }
+
+    <div class="cover-actions">
+      <button type="button" [disabled]="!b.coverImageReady || composingCover()" (click)="composeCover()">
+        @if (composingCover()) {
+          Composing cover PDF...
+        } @else {
+          Compose cover PDF
+        }
+      </button>
+
+      @if (b.coverPdfKey) {
+        <a class="download-link" [href]="downloadCoverUrl()" download="cover.pdf">Download cover PDF</a>
+      }
+    </div>
+  </section>
+
+  <ol class="pages">
+    @for (page of b.pages; track page.pageNumber) {
+      <li class="page-card" [class.ready]="page.imageReady">
+        <div class="page-number">Page {{ page.pageNumber }}</div>
+
+        <div class="field">
+          <label [for]="'text-' + page.pageNumber">Arabic text</label>
+          <textarea
+            [id]="'text-' + page.pageNumber"
+            dir="rtl"
+            rows="3"
+            #pageText
+          >{{ page.textAr }}</textarea>
+          <button
+            type="button"
+            (click)="saveText(page.pageNumber, pageText.value)"
+            [disabled]="savingPage() === page.pageNumber"
+          >
+            @if (savingPage() === page.pageNumber) {
+              Saving...
+            } @else {
+              Save text
+            }
+          </button>
+        </div>
+
+        <div class="field">
+          <label>Image prompt</label>
+          <p class="prompt">{{ page.imagePrompt }}</p>
+          <button type="button" (click)="copyPrompt(page.pageNumber, page.imagePrompt)">
+            @if (copiedPage() === page.pageNumber) {
+              Copied!
+            } @else {
+              Copy prompt
+            }
+          </button>
+        </div>
+
+        <div class="field">
+          <label [for]="'file-' + page.pageNumber">
+            Illustration
+            @if (page.imageReady) {
+              <span class="badge ready">ready</span>
+            } @else {
+              <span class="badge pending">not uploaded</span>
+            }
+          </label>
+          <input
+            [id]="'file-' + page.pageNumber"
+            type="file"
+            accept="image/png"
+            (change)="onFileSelected(page.pageNumber, $event)"
+            [disabled]="uploadingPage() === page.pageNumber"
+          />
+          @if (uploadingPage() === page.pageNumber) {
+            <p class="hint">Uploading...</p>
+          }
+          @if (pageErrors()[page.pageNumber]) {
+            <p class="error">{{ pageErrors()[page.pageNumber] }}</p>
+          }
+        </div>
+      </li>
+    }
+  </ol>
+
+  <footer class="compose-bar">
+    @if (composeError()) {
+      <p class="error">{{ composeError() }}</p>
+    }
+
+    <button type="button" [disabled]="!allReady() || composing()" (click)="compose()">
+      @if (composing()) {
+        Composing PDF...
+      } @else {
+        Compose interior PDF
+      }
+    </button>
+
+    @if (b.interiorPdfKey) {
+      <a class="download-link" [href]="downloadUrl()" download="interior.pdf">Download interior PDF</a>
+    }
+  </footer>
+}

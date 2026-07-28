@@ -1,0 +1,172 @@
+:host {
+  display: block;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 6rem;
+}
+
+.workspace-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.progress {
+  color: #666;
+  margin: 0 0 0.4rem;
+}
+
+progress {
+  width: 100%;
+  height: 0.6rem;
+}
+
+.cover-card {
+  margin-top: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.cover-card.ready {
+  border-color: #1a5b3f;
+}
+
+.cover-card h2 {
+  font-size: 1.1rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cover-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pages {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+}
+
+.page-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.page-card.ready {
+  border-color: #1a5b3f;
+}
+
+.page-number {
+  font-weight: 700;
+  color: #444;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.prompt {
+  font-size: 0.85rem;
+  color: #333;
+  background: #f7f7f5;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin: 0;
+}
+
+button {
+  align-self: flex-start;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  border: 1px solid #1a5b3f;
+  border-radius: 6px;
+  background: white;
+  color: #1a5b3f;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.badge.ready {
+  background: #d5ead9;
+  color: #1a5b3f;
+}
+
+.badge.pending {
+  background: #f2e6c9;
+  color: #7a5a00;
+}
+
+.error {
+  color: #b3261e;
+  font-weight: 600;
+}
+
+.hint {
+  color: #666;
+  margin: 0;
+}
+
+.compose-bar {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  border-top: 1px solid #ddd;
+  padding: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.compose-bar button {
+  background: #1a5b3f;
+  color: white;
+}
+
+.download-link {
+  font-weight: 700;
+  color: #1a5b3f;
+}
