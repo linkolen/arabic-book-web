@@ -19,11 +19,21 @@
       }
     </h2>
     <p class="hint">
-      Generate one wraparound back+spine+front illustration (see the style guide below for
-      consistency), then upload it here.
+      One wraparound back+spine+front illustration. Use the prompt below in a commercial-use
+      image tool (or generate it with Gemini) and upload the result here.
     </p>
-    @if (b.styleGuide) {
-      <p class="prompt">{{ b.styleGuide }}</p>
+    @if (b.coverImagePrompt) {
+      <div class="field">
+        <label>Cover prompt</label>
+        <p class="prompt">{{ b.coverImagePrompt }}</p>
+        <button type="button" (click)="copyCoverPrompt(b.coverImagePrompt)">
+          @if (copiedCover()) {
+            Copied!
+          } @else {
+            Copy prompt
+          }
+        </button>
+      </div>
     }
 
     <div class="field">
@@ -33,11 +43,23 @@
         type="file"
         accept="image/png"
         (change)="onCoverFileSelected($event)"
-        [disabled]="uploadingCover()"
+        [disabled]="uploadingCover() || generatingCover()"
       />
       @if (uploadingCover()) {
         <p class="hint">Uploading...</p>
       }
+
+      <button
+        type="button"
+        (click)="generateCoverImage()"
+        [disabled]="uploadingCover() || generatingCover()"
+      >
+        @if (generatingCover()) {
+          Generating with Gemini...
+        } @else {
+          Generate with Gemini
+        }
+      </button>
     </div>
 
     @if (coverError()) {
@@ -55,6 +77,11 @@
 
       @if (b.coverPdfKey) {
         <a class="download-link" [href]="downloadCoverUrl()" download="cover.pdf">Download cover PDF</a>
+      }
+      @if (b.coverJpegKey) {
+        <a class="download-link" [href]="downloadCoverJpegUrl()" download="cover.jpg">
+          Download cover JPEG (Kindle eBook)
+        </a>
       }
     </div>
   </section>
@@ -111,11 +138,24 @@
             type="file"
             accept="image/png"
             (change)="onFileSelected(page.pageNumber, $event)"
-            [disabled]="uploadingPage() === page.pageNumber"
+            [disabled]="uploadingPage() === page.pageNumber || generatingPage() === page.pageNumber"
           />
           @if (uploadingPage() === page.pageNumber) {
             <p class="hint">Uploading...</p>
           }
+
+          <button
+            type="button"
+            (click)="generateImage(page.pageNumber)"
+            [disabled]="uploadingPage() === page.pageNumber || generatingPage() === page.pageNumber"
+          >
+            @if (generatingPage() === page.pageNumber) {
+              Generating with Gemini...
+            } @else {
+              Generate with Gemini
+            }
+          </button>
+
           @if (pageErrors()[page.pageNumber]) {
             <p class="error">{{ pageErrors()[page.pageNumber] }}</p>
           }
@@ -131,14 +171,17 @@
 
     <button type="button" [disabled]="!allReady() || composing()" (click)="compose()">
       @if (composing()) {
-        Composing PDF...
+        Composing PDF + EPUB...
       } @else {
-        Compose interior PDF
+        Compose interior PDF + EPUB
       }
     </button>
 
     @if (b.interiorPdfKey) {
       <a class="download-link" [href]="downloadUrl()" download="interior.pdf">Download interior PDF</a>
+    }
+    @if (b.interiorEpubKey) {
+      <a class="download-link" [href]="downloadEpubUrl()" download="interior.epub">Download interior EPUB</a>
     }
   </footer>
 }

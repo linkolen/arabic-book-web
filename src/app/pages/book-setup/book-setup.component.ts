@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, Validators, NonNullableFormBuilder } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { BookApiService } from '../../core/services/book-api.service';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -8,7 +8,7 @@ import { apiErrorMessage } from '../../core/services/api-error';
 @Component({
   selector: 'app-book-setup',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './book-setup.component.html',
   styleUrl: './book-setup.component.css',
 })

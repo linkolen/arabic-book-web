@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { BookResponse, CreateBookRequest, PageResponse } from '../models/book.models';
+import { BookResponse, BookSummary, CreateBookRequest, PageResponse } from '../models/book.models';
 
 @Injectable({ providedIn: 'root' })
 export class BookApiService {
@@ -11,12 +11,20 @@ export class BookApiService {
 
   constructor(private readonly http: HttpClient) {}
 
+  listBooks(): Observable<BookSummary[]> {
+    return this.http.get<BookSummary[]>(this.baseUrl);
+  }
+
   createBook(request: CreateBookRequest): Observable<BookResponse> {
     return this.http.post<BookResponse>(this.baseUrl, request);
   }
 
   getBook(bookId: number): Observable<BookResponse> {
     return this.http.get<BookResponse>(`${this.baseUrl}/${bookId}`);
+  }
+
+  deleteBook(bookId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${bookId}`);
   }
 
   updatePageText(bookId: number, pageNumber: number, textAr: string): Observable<PageResponse> {
@@ -29,6 +37,10 @@ export class BookApiService {
     return this.http.post<PageResponse>(`${this.baseUrl}/${bookId}/pages/${pageNumber}/image`, formData);
   }
 
+  generatePageImage(bookId: number, pageNumber: number): Observable<PageResponse> {
+    return this.http.post<PageResponse>(`${this.baseUrl}/${bookId}/pages/${pageNumber}/generate-image`, {});
+  }
+
   composeInterior(bookId: number): Observable<BookResponse> {
     return this.http.post<BookResponse>(`${this.baseUrl}/${bookId}/compose`, {});
   }
@@ -39,6 +51,10 @@ export class BookApiService {
     return this.http.post<BookResponse>(`${this.baseUrl}/${bookId}/cover/image`, formData);
   }
 
+  generateCoverImage(bookId: number): Observable<BookResponse> {
+    return this.http.post<BookResponse>(`${this.baseUrl}/${bookId}/cover/generate-image`, {});
+  }
+
   composeCover(bookId: number): Observable<BookResponse> {
     return this.http.post<BookResponse>(`${this.baseUrl}/${bookId}/compose/cover`, {});
   }
@@ -47,7 +63,15 @@ export class BookApiService {
     return `${this.baseUrl}/${bookId}/download/interior`;
   }
 
+  downloadInteriorEpubUrl(bookId: number): string {
+    return `${this.baseUrl}/${bookId}/download/interior-epub`;
+  }
+
   downloadCoverUrl(bookId: number): string {
     return `${this.baseUrl}/${bookId}/download/cover`;
+  }
+
+  downloadCoverJpegUrl(bookId: number): string {
+    return `${this.baseUrl}/${bookId}/download/cover-jpeg`;
   }
 }
