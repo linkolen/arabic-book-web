@@ -1,40 +1,98 @@
 <section class="setup-card">
   <a class="back-link" routerLink="/">&larr; All books</a>
-  <h1>Start a new Arabic children's book</h1>
+  <h1>Start a new children's book</h1>
   <p class="hint">
-    Describe the book below. Gemini will write the Arabic story and a per-page
-    illustration prompt -- this can take a few seconds.
+    Describe the book below and pick a language. Gemini writes the story and a
+    per-page illustration prompt -- this can take a few seconds.
   </p>
 
   <form [formGroup]="form" (ngSubmit)="submit()">
-    <label>
-      Theme
-      <input type="text" formControlName="theme" placeholder="a rabbit who learns to share" />
-    </label>
+  <label>
+    Book type
+    <select formControlName="bookType">
+      <option value="story">Story (full-color picture book)</option>
+      <option value="coloring">Coloring book (black-and-white line art)</option>
+      <option value="activity">Activity book (word search / mazes)</option>
+    </select>
+  </label>
 
-    <label>
-      Main character
-      <input type="text" formControlName="mainCharacter" placeholder="a small brown rabbit named Arnoub" />
-    </label>
+  <label>
+    Language
+    <select formControlName="language">
+      @for (lang of languages; track lang.value) {
+        <option [value]="lang.value">{{ lang.label }}</option>
+      }
+    </select>
+  </label>
 
+  <label>
+    Theme
+    <input
+      type="text"
+      formControlName="theme"
+      [placeholder]="bookType() === 'coloring' || bookType() === 'activity' ? 'animals' : 'a rabbit who learns to share'"
+    />
+  </label>
+
+  @if (bookType() === 'activity') {
     <label>
-      Age band
-      <select formControlName="ageBand">
-        <option value="2-4">2-4</option>
-        <option value="4-6">4-6</option>
-        <option value="6-8">6-8</option>
+      Puzzle type
+      <select formControlName="puzzleType">
+        @for (type of puzzleTypes; track type.value) {
+          <option [value]="type.value">{{ type.label }}</option>
+        }
       </select>
     </label>
+
+    <label class="checkbox-row">
+      <input type="checkbox" formControlName="colorAccents" />
+      <span>Color accents — themed colored frames, banners and hint numbers (premium color print, higher cost)</span>
+    </label>
+  }
+
+    @if (bookType() === 'story') {
+      <label>
+        Main character
+        <input type="text" formControlName="mainCharacter" placeholder="a small brown rabbit named Arnoub" />
+      </label>
+
+      <label>
+        Age band
+        <select formControlName="ageBand">
+          <option value="2-4">2-4</option>
+          <option value="4-6">4-6</option>
+          <option value="6-8">6-8</option>
+        </select>
+      </label>
+    }
 
     <label>
       Page count
       <input type="number" formControlName="pageCount" min="1" max="828" />
     </label>
 
-    <label>
-      Art style
-      <input type="text" formControlName="artStyle" placeholder="watercolor, soft pastel colors" />
-    </label>
+    @if (bookType() === 'story') {
+      <label>
+        Art style
+        <input type="text" formControlName="artStyle" placeholder="watercolor, soft pastel colors" />
+      </label>
+    } @else {
+      <label>
+        Page size
+        <select formControlName="trimSize">
+          @for (size of trimSizes; track size.label) {
+            <option [value]="$index">{{ size.label }}</option>
+          }
+        </select>
+      </label>
+
+      @if (bookType() === 'coloring') {
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="includeCaption" />
+          Include a caption (the subject's Arabic word/name) under each page
+        </label>
+      }
+    }
 
     @if (error()) {
       <p class="error">{{ error() }}</p>
@@ -42,7 +100,11 @@
 
     <button type="submit" [disabled]="submitting()">
       @if (submitting()) {
-        Generating story...
+        @if (bookType() === 'activity') {
+          Preparing puzzles...
+        } @else {
+          Generating story...
+        }
       } @else {
         Create book
       }

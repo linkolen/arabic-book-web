@@ -4,12 +4,50 @@
 
 @if (book(); as b) {
   <header class="workspace-header">
-    <h1>{{ b.titleAr || b.theme }}</h1>
-    <p class="progress">{{ readyCount() }} of {{ totalCount() }} pages ready</p>
+    <h1>
+      {{ b.titleAr || b.theme }}
+      <span class="badge type">{{ b.bookType === 'coloring' ? 'coloring book' : b.bookType === 'activity' ? 'activity book' : 'story' }}</span>
+      <span class="badge type">{{ b.language === 'en' ? 'English' : 'عربي' }}</span>
+    </h1>
+    <div class="header-row">
+      <p class="progress">{{ readyCount() }} of {{ totalCount() }} pages ready</p>
+      <label class="publish-status">
+        <span>KDP status</span>
+        <select
+          [value]="b.publishStatus"
+          (change)="setPublishStatus($any($event.target).value)"
+          [disabled]="updatingStatus()"
+        >
+          @for (s of publishStatuses; track s.value) {
+            <option [value]="s.value" [selected]="s.value === b.publishStatus">{{ s.label }}</option>
+          }
+        </select>
+      </label>
+    </div>
     <progress [value]="readyCount()" [max]="totalCount()"></progress>
   </header>
 
-  <section class="cover-card" [class.ready]="b.coverImageReady">
+  <section class="card tight" [class.ready]="validationPassed()">
+    <h2>
+      KDP Readiness
+      @if (validationPassed()) {
+        <span class="badge ready">all checks pass</span>
+      } @else {
+        <span class="badge pending">{{ validationIssueCount() }} issues</span>
+      }
+    </h2>
+    <ul class="checklist">
+      @for (check of validationChecks(); track check.label) {
+        <li [class.pass]="check.pass" [class.fail]="!check.pass">
+          <span class="check-icon">{{ check.pass ? '✓' : '✗' }}</span>
+          <span class="check-label">{{ check.label }}</span>
+          <span class="check-detail">{{ check.detail }}</span>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="card" [class.ready]="b.coverImageReady">
     <h2>
       Cover
       @if (b.coverImageReady) {
@@ -18,14 +56,43 @@
         <span class="badge pending">not uploaded</span>
       }
     </h2>
+
+    <div class="cover-image">
+      @if (b.coverImageReady) {
+        <img [src]="coverImageUrl()" alt="Cover illustration" />
+      } @else {
+        <div class="page-placeholder">
+          <span>No cover illustration yet</span>
+        </div>
+      }
+    </div>
+
     <p class="hint">
       One wraparound back+spine+front illustration. Use the prompt below in a commercial-use
       image tool (or generate it with Gemini) and upload the result here.
     </p>
     @if (b.coverImagePrompt) {
       <div class="field">
-        <label>Cover prompt</label>
-        <p class="prompt">{{ b.coverImagePrompt }}</p>
+        <label>Cover prompt
+          @if (!editingCoverPrompt()) {
+            <button type="button" class="link-btn" (click)="startEditCoverPrompt()">Edit</button>
+          }
+        </label>
+        @if (editingCoverPrompt()) {
+          <textarea dir="ltr" rows="3" [ngModel]="coverPromptDraft().coverImagePrompt"
+                    (ngModelChange)="updateCoverPromptDraft('coverImagePrompt', $event)"></textarea>
+          <label>Negative prompt</label>
+          <textarea dir="ltr" rows="2" [ngModel]="coverPromptDraft().coverNegativePrompt"
+                    (ngModelChange)="updateCoverPromptDraft('coverNegativePrompt', $event)"></textarea>
+          <div class="btn-row">
+            <button type="button" (click)="saveCoverPrompt()" [disabled]="savingCoverPrompt()">
+              @if (savingCoverPrompt()) { Saving... } @else { Save prompts }
+            </button>
+            <button type="button" class="btn-secondary" (click)="cancelEditCoverPrompt()">Cancel</button>
+          </div>
+        } @else {
+          <p class="prompt">{{ b.coverImagePrompt }}</p>
+        }
         <button type="button" (click)="copyCoverPrompt(b.coverImagePrompt)">
           @if (copiedCover()) {
             Copied!
@@ -41,7 +108,7 @@
       <input
         id="cover-file"
         type="file"
-        accept="image/png"
+        accept="image/png,image/jpeg"
         (change)="onCoverFileSelected($event)"
         [disabled]="uploadingCover() || generatingCover()"
       />
@@ -66,6 +133,40 @@
       <p class="error">{{ coverError() }}</p>
     }
 
+    <div class="field">
+      <label>Cover text overlay (optional)</label>
+      <p class="hint">Leave empty for a pure-illustration cover. If set, the Arabic title/author are drawn on the front panel when composing.</p>
+      <input
+        type="text"
+        [dir]="b.language === 'en' ? 'ltr' : 'rtl'"
+        [placeholder]="b.language === 'en' ? 'Title' : 'العنوان'"
+        [ngModel]="coverTitleDraft()"
+        (ngModelChange)="coverTitleDraft.set($event)"
+      />
+      <input
+        type="text"
+        [dir]="b.language === 'en' ? 'ltr' : 'rtl'"
+        [placeholder]="b.language === 'en' ? 'Author' : 'المؤلف'"
+        [ngModel]="coverAuthorDraft()"
+        (ngModelChange)="coverAuthorDraft.set($event)"
+      />
+      <button type="button" (click)="saveCoverOptions()" [disabled]="savingCoverOptions()">
+        @if (savingCoverOptions()) { Saving... } @else { Save cover text }
+      </button>
+    </div>
+
+    @if (b.bookType === 'coloring') {
+      <label class="checkbox-row">
+        <input
+          type="checkbox"
+          [checked]="b.fullBleedImages"
+          (change)="toggleFullBleed($any($event.target).checked)"
+          [disabled]="savingCoverOptions()"
+        />
+        <span>Full-bleed line art (fills the page edge-to-edge, no border frame)</span>
+      </label>
+    }
+
     <div class="cover-actions">
       <button type="button" [disabled]="!b.coverImageReady || composingCover()" (click)="composeCover()">
         @if (composingCover()) {
@@ -86,17 +187,267 @@
     </div>
   </section>
 
+  <section class="card">
+    <h2>Bulk page images</h2>
+    @if (b.bookType === 'activity') {
+      <p class="hint">
+        Puzzles are rendered right here -- no AI quota used. Render every missing
+        page in one click.
+      </p>
+      <button
+        type="button"
+        (click)="generateAllMissing()"
+        [disabled]="bulkUploading() || generatingAll() || generatingPage() !== null"
+      >
+        @if (generatingAll()) {
+          Rendering puzzles ({{ generatedAllCount() }}/{{ missingCount() }})...
+        } @else {
+          Render all {{ missingCount() }} missing puzzles
+        }
+      </button>
+    } @else {
+      <p class="hint">
+      Select every image in a folder at once. Each file must be named <code>page-N.png</code> or
+      <code>page-N.jpg</code> (e.g. <code>page-1.png</code>, <code>page-2.jpg</code>) so it can be matched to
+      the right page; each one goes through the same upscaling and resolution checks as a single upload.
+    </p>
+    <div class="field">
+      <label for="bulk-files">Page images</label>
+      <input
+        id="bulk-files"
+        type="file"
+        accept="image/png,image/jpeg"
+        multiple
+        (change)="onBulkFilesSelected($event)"
+        [disabled]="bulkUploading()"
+      />
+      @if (bulkUploading()) {
+        <p class="hint">Uploading...</p>
+      }
+    </div>
+
+    @if (bulkError()) {
+      <p class="error">{{ bulkError() }}</p>
+    }
+
+    @if (bulkResults(); as results) {
+      <p class="hint">{{ bulkSuccessCount() }} of {{ results.length }} uploaded successfully.</p>
+      @if (bulkFailureCount() > 0) {
+        <ul class="bulk-results">
+          @for (result of results; track $index) {
+            @if (!result.success) {
+              <li class="error">
+                {{ result.filename }}: {{ result.error }}
+              </li>
+            }
+          }
+        </ul>
+      }
+    }
+    }
+  </section>
+
+  <section class="card">
+    <h2>
+      KDP Listing
+      @if (b.listing.title) {
+        <span class="badge ready">ready</span>
+      } @else {
+        <span class="badge pending">not generated</span>
+      }
+    </h2>
+    <p class="hint">
+      Pre-fills Amazon KDP's "Your book" form: title, subtitle, description, 7 backend
+      keywords, and category suggestions. Generate with Gemini, then edit any field.
+    </p>
+    <button
+      type="button"
+      (click)="generateListing()"
+      [disabled]="generatingListing()"
+    >
+      @if (generatingListing()) {
+        Generating listing...
+      } @else {
+        @if (b.listing.title) { Regenerate with Gemini } @else { Generate with Gemini }
+      }
+    </button>
+
+    @if (listingError()) {
+      <p class="error">{{ listingError() }}</p>
+    }
+
+    @if (b.listing.title) {
+      <div class="field">
+        <label>Title</label>
+        <textarea dir="ltr" rows="2" [ngModel]="b.listing.title"
+                  (ngModelChange)="b.listing.title = $event"></textarea>
+        <div class="btn-row">
+          <button type="button" (click)="saveListingField('title', b.listing.title)" [disabled]="savingListing()">
+            @if (savingListing()) { Saving... } @else { Save }
+          </button>
+          <button type="button" class="btn-secondary" (click)="copyListingText('title', b.listing.title)">
+            @if (copiedListingField() === 'title') { Copied! } @else { Copy }
+          </button>
+        </div>
+      </div>
+
+      @if (b.listing.subtitle) {
+        <div class="field">
+          <label>Subtitle</label>
+          <textarea dir="ltr" rows="2" [ngModel]="b.listing.subtitle"
+                    (ngModelChange)="b.listing.subtitle = $event"></textarea>
+          <div class="btn-row">
+            <button type="button" (click)="saveListingField('subtitle', b.listing.subtitle)" [disabled]="savingListing()">
+              @if (savingListing()) { Saving... } @else { Save }
+            </button>
+            <button type="button" class="btn-secondary" (click)="copyListingText('subtitle', b.listing.subtitle)">
+              @if (copiedListingField() === 'subtitle') { Copied! } @else { Copy }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (b.listing.description) {
+        <div class="field">
+          <label>Description</label>
+          <textarea dir="ltr" rows="8" [ngModel]="b.listing.description"
+                    (ngModelChange)="b.listing.description = $event"></textarea>
+          <div class="btn-row">
+            <button type="button" (click)="saveListingField('description', b.listing.description)" [disabled]="savingListing()">
+              @if (savingListing()) { Saving... } @else { Save }
+            </button>
+            <button type="button" class="btn-secondary" (click)="copyListingText('description', b.listing.description)">
+              @if (copiedListingField() === 'description') { Copied! } @else { Copy }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (b.listing.keywords.length > 0) {
+        <div class="field">
+          <label>Backend keywords ({{ b.listing.keywords.length }}/7)</label>
+          <ul class="keyword-list">
+            @for (kw of b.listing.keywords; track $index) {
+              <li>{{ kw }}</li>
+            }
+          </ul>
+          <button type="button" class="btn-secondary" (click)="copyListingText('keywords', b.listing.keywords.join('\n'))">
+            @if (copiedListingField() === 'keywords') { Copied! } @else { Copy all keywords }
+          </button>
+        </div>
+      }
+
+      @if (b.listing.categories.length > 0) {
+        <div class="field">
+          <label>Suggested categories</label>
+          <ul class="keyword-list">
+            @for (cat of b.listing.categories; track $index) {
+              <li>{{ cat }}</li>
+            }
+          </ul>
+        </div>
+      }
+    }
+  </section>
+
+  <section class="card tight" [class.good]="seoScore() >= 70">
+    <h2>
+      Listing SEO score
+      <span class="seo-score" [class.high]="seoScore() >= 90" [class.mid]="seoScore() >= 70 && seoScore() < 90" [class.low]="seoScore() < 70">
+        {{ seoScore() }}%
+      </span>
+      <span class="badge pending">{{ seoGrade() }}</span>
+    </h2>
+    <ul class="checklist">
+      @for (check of seoChecks(); track check.label) {
+        <li [class.pass]="check.pass" [class.fail]="!check.pass">
+          <span class="check-icon">{{ check.pass ? '✓' : '✗' }}</span>
+          <span class="check-label">{{ check.label }}</span>
+          <span class="check-detail">{{ check.detail }}</span>
+        </li>
+      }
+    </ul>
+    <p class="hint">
+      Based on how Amazon KDP indexes listings: title/subtitle words are indexed automatically,
+      the description drives conversion, and there are exactly 7 backend keyword slots.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>
+      Revenue
+      <button type="button" class="link-btn" (click)="toggleRevenue()">
+        @if (revenueEntries().length > 0) { Hide } @else { Show / load }
+      </button>
+    </h2>
+    @if (revenueEntries().length > 0 || revenueError()) {
+      @if (revenueError()) {
+        <p class="error">{{ revenueError() }}</p>
+      }
+      <div class="revenue-add">
+        <input type="month" [ngModel]="newRevenuePeriod()" (ngModelChange)="newRevenuePeriod.set($event)" />
+        <input type="number" min="0" placeholder="Units" [ngModel]="newRevenueUnits()" (ngModelChange)="newRevenueUnits.set($event)" />
+        <input type="number" min="0" step="0.01" placeholder="Royalty $" [ngModel]="newRevenueRoyalty()" (ngModelChange)="newRevenueRoyalty.set($event)" />
+        <button type="button" (click)="addRevenueEntry()" [disabled]="addingRevenue()">
+          @if (addingRevenue()) { Adding... } @else { Add month }
+        </button>
+      </div>
+      <table class="revenue-table">
+        <thead>
+          <tr><th>Month</th><th>Units</th><th>Royalty</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (entry of revenueEntries(); track entry.id) {
+            <tr>
+              <td>{{ entry.period }}</td>
+              <td>{{ entry.units }}</td>
+              <td>${{ entry.royaltyUsd.toFixed(2) }}</td>
+              <td><button type="button" class="link-btn danger" (click)="deleteRevenueEntry(entry.id)">delete</button></td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="revenue-total">
+            <td>Total</td>
+            <td>{{ revenueTotals().units }}</td>
+            <td>${{ revenueTotals().royalty }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+      <p class="hint">Enter monthly royalty numbers from your KDP reports by hand (KDP has no API).</p>
+    }
+  </section>
+
   <ol class="pages">
     @for (page of b.pages; track page.pageNumber) {
       <li class="page-card" [class.ready]="page.imageReady">
-        <div class="page-number">Page {{ page.pageNumber }}</div>
+        <div class="page-number">
+          Page {{ page.pageNumber }}
+          @if (page.imageReady && page.currentVersion > 0) {
+            <span class="badge version">v{{ page.currentVersion + 1 }}</span>
+          }
+        </div>
+
+        <div class="page-image">
+          @if (page.imageReady) {
+            <img [src]="pageImageUrl(page.pageNumber)" [alt]="'Page ' + page.pageNumber" />
+          } @else {
+            <div class="page-placeholder">
+              <span>No illustration yet</span>
+            </div>
+          }
+        </div>
 
         <div class="field">
-          <label [for]="'text-' + page.pageNumber">Arabic text</label>
+          <label [for]="'text-' + page.pageNumber">
+            {{ b.bookType === 'coloring' ? 'Caption (optional)' : 'Arabic text' }}
+          </label>
           <textarea
             [id]="'text-' + page.pageNumber"
-            dir="rtl"
-            rows="3"
+            [dir]="b.language === 'en' ? 'ltr' : 'rtl'"
+            [rows]="b.bookType === 'coloring' ? 1 : 3"
+            [placeholder]="b.bookType === 'coloring' ? (b.language === 'en' ? 'cat' : 'قطة') : ''"
             #pageText
           >{{ page.textAr }}</textarea>
           <button
@@ -113,15 +464,33 @@
         </div>
 
         <div class="field">
-          <label>Image prompt</label>
-          <p class="prompt">{{ page.imagePrompt }}</p>
-          <button type="button" (click)="copyPrompt(page.pageNumber, page.imagePrompt)">
-            @if (copiedPage() === page.pageNumber) {
-              Copied!
-            } @else {
-              Copy prompt
+          <label>Image prompt
+            @if (editingPromptPage() !== page.pageNumber) {
+              <button type="button" class="link-btn" (click)="startEditPrompt(page.pageNumber, page.imagePrompt, page.negativePrompt)">Edit</button>
             }
-          </button>
+          </label>
+          @if (editingPromptPage() === page.pageNumber) {
+            <textarea dir="ltr" rows="4" [ngModel]="promptDraft().imagePrompt"
+                      (ngModelChange)="updatePromptDraft('imagePrompt', $event)"></textarea>
+            <label>Negative prompt</label>
+            <textarea dir="ltr" rows="2" [ngModel]="promptDraft().negativePrompt"
+                      (ngModelChange)="updatePromptDraft('negativePrompt', $event)"></textarea>
+            <div class="btn-row">
+              <button type="button" (click)="savePrompt(page.pageNumber)" [disabled]="savingPromptPage() === page.pageNumber">
+                @if (savingPromptPage() === page.pageNumber) { Saving... } @else { Save prompts }
+              </button>
+              <button type="button" class="btn-secondary" (click)="cancelEditPrompt()">Cancel</button>
+            </div>
+          } @else {
+            <p class="prompt">{{ page.imagePrompt || '(no prompt — edit to add one)' }}</p>
+            <button type="button" (click)="copyPrompt(page.pageNumber, page.imagePrompt)">
+              @if (copiedPage() === page.pageNumber) {
+                Copied!
+              } @else {
+                Copy prompt
+              }
+            </button>
+          }
         </div>
 
         <div class="field">
@@ -136,7 +505,7 @@
           <input
             [id]="'file-' + page.pageNumber"
             type="file"
-            accept="image/png"
+            accept="image/png,image/jpeg"
             (change)="onFileSelected(page.pageNumber, $event)"
             [disabled]="uploadingPage() === page.pageNumber || generatingPage() === page.pageNumber"
           />
@@ -150,9 +519,17 @@
             [disabled]="uploadingPage() === page.pageNumber || generatingPage() === page.pageNumber"
           >
             @if (generatingPage() === page.pageNumber) {
-              Generating with Gemini...
+              @if (b.bookType === 'activity') {
+                Rendering puzzle...
+              } @else {
+                Generating with {{ imageProviderLabel }}...
+              }
             } @else {
-              Generate with Gemini
+              @if (b.bookType === 'activity') {
+                Render puzzle
+              } @else {
+                Generate with {{ imageProviderLabel }}
+              }
             }
           </button>
 
@@ -160,9 +537,102 @@
             <p class="error">{{ pageErrors()[page.pageNumber] }}</p>
           }
         </div>
+
+        @if (page.imageReady && page.currentVersion > 0) {
+          <div class="field version-history">
+            <button
+              type="button"
+              class="link-btn"
+              (click)="toggleVersionHistory(page.pageNumber)"
+            >
+              @if (versionHistoryPage() === page.pageNumber) {
+                Hide version history
+              } @else {
+                Version history ({{ page.currentVersion }} older)
+              }
+            </button>
+
+            @if (versionHistoryPage() === page.pageNumber) {
+              <div class="version-list">
+                @if (loadingVersions()) {
+                  <p class="hint">Loading versions...</p>
+                } @else {
+                  @for (v of versionHistory(); track v.version) {
+                    <div class="version-item">
+                      <img [src]="versionImageUrl(page.pageNumber, v.version)" [alt]="'Version ' + v.version" />
+                      <div class="version-meta">
+                        <span class="version-label">v{{ v.version }}</span>
+                        <span class="version-date">{{ v.createdAt | date:'short' }}</span>
+                        @if (v.prompt) {
+                          <p class="version-prompt">{{ v.prompt }}</p>
+                        }
+                      </div>
+                      <button
+                        type="button"
+                        (click)="restoreVersion(page.pageNumber, v.version)"
+                        [disabled]="restoringVersion()?.page === page.pageNumber && restoringVersion()?.version === v.version"
+                      >
+                        @if (restoringVersion()?.page === page.pageNumber && restoringVersion()?.version === v.version) {
+                          Restoring...
+                        } @else {
+                          Restore
+                        }
+                      </button>
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
+        }
       </li>
     }
   </ol>
+
+  @if (royaltyInfo(); as r) {
+    <section class="card">
+      <h2>Kindle eBook Royalty Estimate</h2>
+      <div class="royalty-grid">
+        <div class="field">
+          <label for="list-price">List price (USD)</label>
+          <input
+            id="list-price"
+            type="number"
+            min="0.01"
+            step="0.01"
+            [ngModel]="listPrice()"
+            (ngModelChange)="listPrice.set($event)"
+          />
+        </div>
+        <div class="royalty-detail">
+          <div class="royalty-row">
+            <span>Royalty tier</span>
+            <span>{{ r.royaltyRate * 100 }}%</span>
+          </div>
+          <div class="royalty-row">
+            <span>Est. file size</span>
+            <span>{{ r.estFileMb }} MB</span>
+          </div>
+          <div class="royalty-row">
+            <span>Delivery cost</span>
+            <span>${{ r.deliveryCost }}</span>
+          </div>
+          <div class="royalty-row">
+            <span>Gross royalty</span>
+            <span>${{ r.grossRoyalty }}</span>
+          </div>
+          <div class="royalty-row highlight">
+            <span>Net royalty</span>
+            <span>${{ r.netRoyalty }} ({{ r.netRoyaltyPercent }}%)</span>
+          </div>
+        </div>
+      </div>
+      <p class="hint">
+        Based on KDP US marketplace rates. Delivery cost = $0.15/MB.
+        70% royalty for $2.99–$9.99; 35% otherwise.
+      </p>
+    </section>
+  }
 
   <footer class="compose-bar">
     @if (composeError()) {
@@ -178,10 +648,25 @@
     </button>
 
     @if (b.interiorPdfKey) {
-      <a class="download-link" [href]="downloadUrl()" download="interior.pdf">Download interior PDF</a>
+      <a class="download-link" [href]="downloadUrl()" download="interior.pdf">Download interior PDF (original)</a>
     }
     @if (b.interiorEpubKey) {
       <a class="download-link" [href]="downloadEpubUrl()" download="interior.epub">Download interior EPUB</a>
+    }
+
+    @if (b.redesignStatus === 'IN_PROGRESS' || redesigning()) {
+      <span class="hint">✨ Redesigning… new design being generated automatically…</span>
+    }
+    @if (b.redesignedPdfKey) {
+      <a class="download-link redesign" [href]="downloadRedesignedUrl()" download="redesigned.pdf">Download redesigned PDF ✨</a>
+    }
+    @if (b.redesignStatus === 'FAILED') {
+      <p class="error">Redesign failed: {{ b.redesignError || redesignError() }}
+        <button type="button" class="link-btn" (click)="triggerRedesign()">Retry redesign</button>
+      </p>
+    }
+    @if (b.redesignStatus === 'DONE' && !b.redesignedPdfKey) {
+      <p class="hint">Redesigned PDF will appear here once ready.</p>
     }
   </footer>
 }

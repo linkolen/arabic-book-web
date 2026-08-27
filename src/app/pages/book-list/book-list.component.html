@@ -27,10 +27,11 @@
           </button>
           <a [routerLink]="['/books', book.id]" class="book-link">
             <h2>{{ book.titleAr || book.theme }}</h2>
-            <p class="hint">{{ book.mainCharacter }}</p>
+            <p class="hint">{{ book.mainCharacter || book.theme }}</p>
             <p class="progress">{{ book.readyPageCount }} of {{ book.pageCount }} pages ready</p>
             <progress [value]="book.readyPageCount" [max]="book.pageCount"></progress>
             <div class="badges">
+              <span class="badge type">{{ book.bookType === 'coloring' ? 'coloring book' : 'story' }}</span>
               @if (book.coverImageReady) {
                 <span class="badge ready">cover ready</span>
               } @else {

@@ -122,3 +122,8 @@ progress {
   background: #f2e6c9;
   color: #7a5a00;
 }
+
+.badge.type {
+  background: #e2e8f0;
+  color: #334155;
+}
