@@ -53,6 +53,8 @@ export class BookWorkspaceComponent {
   // endpoint (puzzles render server-side in Java, no AI quota involved).
   readonly generatingAll = signal(false);
   readonly generatedAllCount = signal(0);
+  // Background auto-render after creation (server side, same endpoints).
+  readonly autoRendering = signal(false);
   readonly missingCount = computed(
     () => this.book()?.pages.filter((p) => !p.imageReady).length ?? 0,
   );
@@ -307,9 +309,49 @@ export class BookWorkspaceComponent {
         if (book.redesignStatus === 'IN_PROGRESS' && !this.redesigning()) {
           this.pollRedesign();
         }
+        // New activity books render in the background right after creation;
+        // follow along so pages pop in without a manual "render all" click.
+        if (
+          book.bookType === 'activity' &&
+          !this.generatingAll() &&
+          !this.autoRendering() &&
+          (book.pages ?? []).some((p) => !p.imageReady)
+        ) {
+          this.pollMissing();
+        }
       },
       error: (err) => this.loadError.set(apiErrorMessage(err)),
     });
+  }
+
+  /**
+   * Polls GET /books/{id} until every activity page has an image (the
+   * server renders them in the background after creation) or the loop is
+   * torn down. Shares state with the manual render-all button so the two
+   * never fight: manual mode wins while it runs.
+   */
+  private pollMissing(): void {
+    this.autoRendering.set(true);
+    interval(COMPOSE_POLL_INTERVAL_MS)
+      .pipe(
+        switchMap(() => this.bookApi.getBook(this.bookId)),
+        takeWhile(
+          (b) =>
+            (b.pages ?? []).some((p) => !p.imageReady) && !this.generatingAll(),
+          true,
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (b) => {
+          this.book.set(b);
+          this.imageCacheBuster.update((n) => n + 1);
+          if (!(b.pages ?? []).some((p) => !p.imageReady)) {
+            this.autoRendering.set(false);
+          }
+        },
+        error: () => this.autoRendering.set(false),
+      });
   }
 
   saveText(pageNumber: number, textAr: string): void {

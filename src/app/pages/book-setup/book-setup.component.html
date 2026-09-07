@@ -30,11 +30,35 @@
     <input
       type="text"
       formControlName="theme"
+      list="theme-suggestions"
+      autocomplete="off"
       [placeholder]="bookType() === 'coloring' || bookType() === 'activity' ? 'animals' : 'a rabbit who learns to share'"
     />
+    <datalist id="theme-suggestions">
+      @for (theme of themes; track theme.value) {
+        <option [value]="theme.value">{{ theme.label }}</option>
+      }
+    </datalist>
+    @if (bookType() === 'coloring' || bookType() === 'activity') {
+      <small class="hint">Suggested themes unlock fully themed puzzles — or type your own.</small>
+    }
   </label>
 
   @if (bookType() === 'activity') {
+    <label>
+      Age range
+      <select formControlName="ageBand">
+        <option value="4-6">4–6 years</option>
+        <option value="6-8">6–8 years</option>
+      </select>
+    </label>
+    <label>
+      Currency for money activities
+      <select formControlName="currency">
+        <option value="USD">US dollars (cents)</option>
+        <option value="EUR">Euros (cents)</option>
+      </select>
+    </label>
     <label>
       Puzzle type
       <select formControlName="puzzleType">

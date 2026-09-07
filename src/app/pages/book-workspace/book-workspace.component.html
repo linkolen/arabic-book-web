@@ -191,9 +191,16 @@
     <h2>Bulk page images</h2>
     @if (b.bookType === 'activity') {
       <p class="hint">
-        Puzzles are rendered right here -- no AI quota used. Render every missing
-        page in one click.
+        Puzzles render automatically right after creation using the book's
+        theme. Missing pages can be re-rendered here one click at a time --
+        dot-to-dot backgrounds use a little AI quota, everything else is local.
       </p>
+      @if (autoRendering() && !generatingAll()) {
+        <p class="hint">
+          Rendering puzzles in the background
+          ({{ readyCount() }}/{{ totalCount() }} ready)...
+        </p>
+      }
       <button
         type="button"
         (click)="generateAllMissing()"

@@ -2,7 +2,7 @@ export type ComposeStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE' | 'FAILED';
 
 export type BookType = 'story' | 'coloring' | 'activity';
 
-export type PuzzleType = 'WORD_SEARCH' | 'MAZE' | 'DOT_TO_DOT' | 'CROSSWORD' | 'NONOGRAM' | 'MIXED';
+export type PuzzleType = 'WORD_SEARCH' | 'MAZE' | 'DOT_TO_DOT' | 'CROSSWORD' | 'NONOGRAM' | 'MIXED' | 'PATTERN' | 'DRAWING' | 'SPOT_THE_DIFFERENCE' | 'MATCHING' | 'COUNTING' | 'SIMPLE_MATH' | 'TRACING' | 'SORTING' | 'CLASSIFICATION' | 'LETTER_REC' | 'BEGIN_SOUNDS' | 'RHYMING' | 'WORD_PICTURE' | 'SIGHT_WORDS' | 'HIDDEN_PICTURE' | 'SHAPE_REC' | 'SHAPE_COMPLETE' | 'VISUAL_LOGIC' | 'NUMBER_REC' | 'MORE_LESS' | 'NUMBER_SEQ' | 'TIME' | 'MONEY' | 'ANIMALS' | 'PLANTS' | 'WEATHER' | 'SEASONS' | 'SENSES' | 'COMMUNITY' | 'COLORING_ACTIVITY' | 'COLOR_NUMBER' | 'COLOR_LETTER' | 'FINISH_PICTURE' | 'SYMMETRY' | 'ROBOT_PATH' | 'SYMBOL_CODE' | 'ALGORITHM' | 'SEQUENCING' | 'NUMBER_TRACE';
 
 /** Must mirror the validation in BookService.validateCreateRequest. */
 export const PUZZLE_TYPES: ReadonlyArray<{ value: PuzzleType; label: string }> = [
@@ -12,6 +12,45 @@ export const PUZZLE_TYPES: ReadonlyArray<{ value: PuzzleType; label: string }> =
   { value: 'DOT_TO_DOT', label: 'Dot-to-dot' },
   { value: 'CROSSWORD', label: 'Crossword (criss-cross)' },
   { value: 'NONOGRAM', label: 'Nonogram (color by numbers)' },
+  { value: 'PATTERN', label: 'Patterns' },
+  { value: 'DRAWING', label: 'Drawing prompts' },
+  { value: 'SPOT_THE_DIFFERENCE', label: 'Spot the difference' },
+  { value: 'MATCHING', label: 'Matching pairs' },
+  { value: 'COUNTING', label: 'Counting' },
+  { value: 'SIMPLE_MATH', label: 'Simple math' },
+  { value: 'TRACING', label: 'Tracing' },
+  { value: 'SORTING', label: 'Sorting' },
+  { value: 'CLASSIFICATION', label: 'Classification' },
+  { value: 'LETTER_REC', label: 'Letter recognition' },
+  { value: 'BEGIN_SOUNDS', label: 'Beginning sounds' },
+  { value: 'RHYMING', label: 'Rhyming' },
+  { value: 'WORD_PICTURE', label: 'Word-picture match' },
+  { value: 'SIGHT_WORDS', label: 'Sight words' },
+  { value: 'HIDDEN_PICTURE', label: 'Hidden pictures' },
+  { value: 'SHAPE_REC', label: 'Shapes' },
+  { value: 'SHAPE_COMPLETE', label: 'Complete shapes' },
+  { value: 'VISUAL_LOGIC', label: 'Visual logic' },
+  { value: 'NUMBER_REC', label: 'Numbers' },
+  { value: 'MORE_LESS', label: 'More or less' },
+  { value: 'NUMBER_SEQ', label: 'Number sequences' },
+  { value: 'TIME', label: 'Time' },
+  { value: 'MONEY', label: 'Money' },
+  { value: 'ANIMALS', label: 'Animals' },
+  { value: 'PLANTS', label: 'Plants' },
+  { value: 'WEATHER', label: 'Weather' },
+  { value: 'SEASONS', label: 'Seasons' },
+  { value: 'SENSES', label: 'Five Senses' },
+  { value: 'COMMUNITY', label: 'Community' },
+  { value: 'COLORING_ACTIVITY', label: 'Coloring' },
+  { value: 'COLOR_NUMBER', label: 'Color by Number' },
+  { value: 'COLOR_LETTER', label: 'Color by Letter' },
+  { value: 'FINISH_PICTURE', label: 'Finish the Picture' },
+  { value: 'SYMMETRY', label: 'Symmetry' },
+  { value: 'ROBOT_PATH', label: 'Robot Path' },
+  { value: 'SYMBOL_CODE', label: 'Symbol Code' },
+  { value: 'ALGORITHM', label: 'Simple Algorithms' },
+  { value: 'SEQUENCING', label: 'Sequencing' },
+  { value: 'NUMBER_TRACE', label: 'Number Tracing' },
 ];
 
 export type BookLanguage = 'ar' | 'en';
@@ -19,6 +58,22 @@ export type BookLanguage = 'ar' | 'en';
 export const LANGUAGES: ReadonlyArray<{ value: BookLanguage; label: string }> = [
   { value: 'ar', label: 'Arabic (RTL)' },
   { value: 'en', label: 'English (LTR)' },
+];
+
+/** Activity/coloring puzzle themes with full themed content (guides, counting
+ * subjects, maze heroes). Must mirror the theme families in the redesign
+ * service (themes.py THEME_CONTENT) and the Java mirrors (CountingTheme,
+ * MathTheme, DotToDotPuzzle, PatternPuzzle). Free text stays allowed --
+ * anything unmatched falls back to jungle. */
+export const THEMES: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'ocean', label: 'Ocean — fish, treasure, Splash' },
+  { value: 'space', label: 'Space — stars, planets, Robo' },
+  { value: 'jungle', label: 'Jungle — leaves, lions, Leo' },
+  { value: 'food', label: 'Food — apples, cookies, Momo' },
+  { value: 'farm', label: 'Farm — apples, eggs, Pip' },
+  { value: 'magic', label: 'Magic — stars, bubbles, Hoot' },
+  { value: 'dinosaur', label: 'Dinosaurs — eggs, Rex' },
+  { value: 'winter', label: 'Winter — snowflakes, snowballs, Snowy' },
 ];
 
 export type PublishStatus = 'DRAFT' | 'UPLOADED' | 'LIVE';
@@ -123,6 +178,17 @@ export interface CreateBookRequest {
   trimWidthIn?: number;
   trimHeightIn?: number;
   puzzleType?: string;
+  currency?: 'USD' | 'EUR' | string;
+  planning?: {
+    seed?: number;
+    distribution?: Record<string, number>;
+    minimumByCategory?: Record<string, number>;
+    maxSameTypeConsecutive?: number;
+    maxSameCategoryConsecutive?: number;
+    themes?: string[];
+    minDifficulty?: 'EASY' | 'MEDIUM' | 'HARD';
+    maxDifficulty?: 'EASY' | 'MEDIUM' | 'HARD';
+  };
 }
 
 /** Must mirror KdpTrimSizes.SUPPORTED on the API side. */

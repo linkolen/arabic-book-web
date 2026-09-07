@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { BookApiService } from '../../core/services/book-api.service';
 import { apiErrorMessage } from '../../core/services/api-error';
-import { BookLanguage, BookType, LANGUAGES, PUZZLE_TYPES, TRIM_SIZES } from '../../core/models/book.models';
+import { BookLanguage, BookType, LANGUAGES, PUZZLE_TYPES, THEMES, TRIM_SIZES } from '../../core/models/book.models';
 
 @Component({
   selector: 'app-book-setup',
@@ -22,6 +22,7 @@ export class BookSetupComponent {
   readonly trimSizes = TRIM_SIZES;
   readonly puzzleTypes = PUZZLE_TYPES;
   readonly languages = LANGUAGES;
+  readonly themes = THEMES;
 
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
@@ -40,6 +41,7 @@ export class BookSetupComponent {
     // Activity books only.
     puzzleType: ['WORD_SEARCH'],
     colorAccents: [false],
+    currency: ['USD'],
   });
 
   readonly bookType = toSignal(this.form.controls.bookType.valueChanges, {
